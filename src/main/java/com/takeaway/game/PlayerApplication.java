@@ -1,13 +1,13 @@
-package com.takewaway.server;
+package com.takeaway.game;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class ServerApplication {
+public class PlayerApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(ServerApplication.class, args);
+        SpringApplication.run(PlayerApplication.class, args);
     }
 
 }
