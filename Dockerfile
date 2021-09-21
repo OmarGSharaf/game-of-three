@@ -1,4 +1,8 @@
 FROM maven:3.8.2-jdk-8
-COPY . /player
-WORKDIR /player
+ENV HOME=/home/usr/app
+RUN mkdir -p $HOME
+WORKDIR $HOME
+ADD pom.xml $HOME
+RUN ["mvn", "dependency:resolve"]
+ADD . $HOME
 ENTRYPOINT ["mvn", "spring-boot:run"]

@@ -18,7 +18,7 @@ import static org.hamcrest.Matchers.equalTo;
 @SpringBootTest
 @DirtiesContext
 @EmbeddedKafka(partitions = 1, brokerProperties = { "listeners=PLAINTEXT://localhost:9092", "port=9092" })
-class PlayerApplicationTests {
+class KafkaTest {
 
 	@Autowired
 	private KafkaConsumer consumer;
