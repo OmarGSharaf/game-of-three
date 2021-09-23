@@ -1,21 +1,20 @@
 package com.takeaway.game.producer;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.takeaway.game.model.Message;
+import lombok.extern.java.Log;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
+@Log
 @Component
 public class KafkaProducer {
 
-    Logger logger = LoggerFactory.getLogger(KafkaProducer.class);
-
     @Autowired
-    private KafkaTemplate<String, String> kafkaTemplate;
+    private KafkaTemplate<String, Message> kafkaTemplate;
 
-    public void send(String topic, String payload) {
-        logger.info("sending payload='{}' to topic='{}'", payload, topic);
-        kafkaTemplate.send(topic, payload);
+    public void send(String topic, String key, Message message) {
+        log.info(String.format("==> Sending payload='{%s}' to topic='%s'", message.toString(), topic));
+        kafkaTemplate.send(topic, key, message);
     }
 }

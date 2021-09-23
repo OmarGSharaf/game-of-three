@@ -1,6 +1,6 @@
 package com.takeaway.game.configuration;
 
-import com.takeaway.game.GameEngine;
+import com.takeaway.game.component.GameEngine;
 import com.takeaway.game.type.GameEvents;
 import com.takeaway.game.type.GameStates;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.statemachine.action.Action;
 import org.springframework.statemachine.config.EnableStateMachine;
 import org.springframework.statemachine.config.StateMachineConfigurerAdapter;
+import org.springframework.statemachine.config.builders.StateMachineConfigurationConfigurer;
 import org.springframework.statemachine.config.builders.StateMachineStateConfigurer;
 import org.springframework.statemachine.config.builders.StateMachineTransitionConfigurer;
 
@@ -20,12 +21,18 @@ public class StateMachineConfig extends StateMachineConfigurerAdapter<GameStates
     private GameEngine gameEngine;
 
     @Override
+    public void configure(StateMachineConfigurationConfigurer<GameStates, GameEvents> config) throws Exception {
+        config.withConfiguration().autoStartup(true);
+    }
+
+    @Override
     public void configure(StateMachineStateConfigurer<GameStates, GameEvents> states) throws Exception {
-        states.withStates()
-                .initial(GameStates.INIT, initAction())
+        states
+                .withStates()
+                .initial(GameStates.INIT)
+                .state(GameStates.INIT, initAction())
                 .state(GameStates.CONFIGURING, configuringAction())
                 .state(GameStates.CONNECTING, connectingAction())
-                .state(GameStates.CONNECTION_FAILED, connectionFailedAction())
                 .state(GameStates.PLAYING, playAction())
                 .state(GameStates.WAITING, waitAction())
                 .state(GameStates.OVER, overAction())
@@ -34,14 +41,11 @@ public class StateMachineConfig extends StateMachineConfigurerAdapter<GameStates
 
     @Override
     public void configure(StateMachineTransitionConfigurer<GameStates, GameEvents> transitions) throws Exception {
-        transitions.withExternal()
+        transitions
+                .withExternal()
                 .source(GameStates.INIT).target(GameStates.CONFIGURING).event(GameEvents.CONFIGURE)
                 .and().withExternal()
                 .source(GameStates.CONFIGURING).target(GameStates.CONNECTING).event(GameEvents.CONNECT)
-                .and().withExternal()
-                .source(GameStates.CONNECTING).target(GameStates.CONNECTION_FAILED).event(GameEvents.CONNECTION_FAIL)
-                .and().withExternal()
-                .source(GameStates.CONNECTION_FAILED).target(GameStates.CONNECTING).event(GameEvents.RETRY)
                 .and().withExternal()
                 .source(GameStates.CONNECTING).target(GameStates.PLAYING).event(GameEvents.PLAY)
                 .and().withExternal()
@@ -60,22 +64,17 @@ public class StateMachineConfig extends StateMachineConfigurerAdapter<GameStates
 
     @Bean
     public Action<GameStates, GameEvents> initAction() {
-        return ctx -> gameEngine.welcome();
+        return ctx -> gameEngine.welcome(ctx);
     }
 
     @Bean
     public Action<GameStates, GameEvents> configuringAction() {
-        return ctx -> gameEngine.pickGameMode();
+        return ctx -> gameEngine.pickGameMode(ctx);
     }
 
     @Bean
     public Action<GameStates, GameEvents> connectingAction() {
-        return ctx -> gameEngine.findOpponent();
-    }
-
-    @Bean
-    public Action<GameStates, GameEvents> connectionFailedAction() {
-        return ctx -> gameEngine.retryFindOpponent();
+        return ctx -> gameEngine.findOpponent(ctx);
     }
 
     @Bean
