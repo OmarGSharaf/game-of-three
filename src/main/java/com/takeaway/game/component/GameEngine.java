@@ -1,7 +1,8 @@
 package com.takeaway.game.component;
 
+import com.takeaway.game.handler.AutomaticGameHandler;
+import com.takeaway.game.handler.ManualGameHandler;
 import com.takeaway.game.type.GameEvents;
-import com.takeaway.game.type.GameMode;
 import com.takeaway.game.type.GameStates;
 import com.takeaway.game.util.ConsoleUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,7 +50,7 @@ public class GameEngine {
 
         String option = ConsoleUtils.scan("\nDo you want to select automatic mode ? [A/m]");
 
-        player.setGameMode(option.equalsIgnoreCase("a") ? GameMode.AUTOMATIC : GameMode.MANUAL);
+        player.setHandler(option.equalsIgnoreCase("a") ? new AutomaticGameHandler() : new ManualGameHandler());
         ctx.getStateMachine().sendEvent(GameEvents.CONNECT);
 
         ConsoleUtils.clearConsole();
@@ -60,7 +61,7 @@ public class GameEngine {
 
         player.init();
 
-        if (player.getId() == Integer.parseInt(player.getConnection().getPlayer1())) {
+        if (player.getConnectionManager().isPLayer1()) {
             ConsoleUtils.clearConsole();
 
             player.start();
@@ -90,7 +91,7 @@ public class GameEngine {
     }
 
     public void gameOver(StateContext<GameStates, GameEvents> ctx) {
-        System.out.println();
+        System.out.println("\n...GAME OVER...\n");
         String option = ConsoleUtils.scan("\nDo you want to play again ? [Y/m]");
 
         player.reset();

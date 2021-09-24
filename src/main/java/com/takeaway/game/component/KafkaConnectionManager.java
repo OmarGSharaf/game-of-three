@@ -1,8 +1,7 @@
-package com.takeaway.game.handler;
+package com.takeaway.game.component;
 
 import com.takeaway.game.listener.PrivateMessageListener;
 import com.takeaway.game.listener.PublicMessageListener;
-import com.takeaway.game.model.Connection;
 import com.takeaway.game.model.Message;
 import com.takeaway.game.producer.KafkaProducer;
 import com.takeaway.game.type.MessageType;
@@ -15,10 +14,7 @@ import java.util.concurrent.TimeUnit;
 
 @Log4j2
 @Component
-public class ConnectionHandler {
-
-    @Value(value = "${kafka.topic}")
-    private String topic;
+public class KafkaConnectionManager implements ConnectionManager {
 
     @Autowired
     private PublicMessageListener publicMessageListener;
@@ -29,19 +25,32 @@ public class ConnectionHandler {
     @Autowired
     private KafkaProducer producer;
 
-    public Connection handle(String id) {
+    @Value(value = "${kafka.topic}")
+    private String topic;
+
+    private String me;
+
+    private String opponent;
+
+    private boolean player1;
+
+    public boolean connect(String me) {
+        this.me = me;
+
         try {
             if (interceptSyncMessage()) {
                 System.out.println("==> [SYN] message = " + publicMessageListener.getPayload());
-                acknowledgeSyncMessage(id, publicMessageListener.getPayload().getSender());
+
+                acknowledgeSyncMessage(me, publicMessageListener.getPayload().getSender());
                 System.out.println("<== [SYN_ACK] message");
+
                 if (interceptAckMessage()) {
-                    System.out.println("==> [ACK] message = " + publicMessageListener.getPayload());
-                    return Connection.builder()
-                            .player1(publicMessageListener.getPayload().getSender())
-                            .player2(id)
-                            .timestamp(System.currentTimeMillis())
-                            .build();
+                    System.out.println("==> [ACK] message = " + privateMessageListener.getPayload());
+
+                    opponent = privateMessageListener.getPayload().getSender();
+                    player1 = false;
+
+                    return true;
                 }
             }
         } catch (InterruptedException e) {
@@ -49,17 +58,19 @@ public class ConnectionHandler {
         }
 
         try {
-            broadcastSyncMessage(id);
+            broadcastSyncMessage(me);
             System.out.println("<== [SYNC] message");
+
             if(interceptSyncAckMessage()) {
                 System.out.println("==> [SYNC_ACK] message = " + privateMessageListener.getPayload());
-                sendAckMessage(id, privateMessageListener.getPayload().getSender());
+
+                sendAckMessage(me, privateMessageListener.getPayload().getSender());
                 System.out.println("<== [ACK] message");
-                return Connection.builder()
-                        .player1(id)
-                        .player2(privateMessageListener.getPayload().getSender())
-                        .timestamp(System.currentTimeMillis())
-                        .build();
+
+                opponent = privateMessageListener.getPayload().getSender();
+                player1 = true;
+
+                return true;
             }
         } catch (InterruptedException e) {
             log.error(e.getMessage());
@@ -68,7 +79,34 @@ public class ConnectionHandler {
         System.out.println("\n## Synchronization failed!");
         System.out.println("## Retry...\n");
 
-        return handle(id);
+        return connect(me);
+    }
+
+    @Override
+    public void send(Integer message) {
+        producer.send(topic, Integer.parseInt(opponent), me, Message.builder()
+                .content(message)
+                .sender(me)
+                .receiver(opponent)
+                .type(MessageType.DEFAULT)
+                .build());
+    }
+
+    @Override
+    public Integer receive() {
+        try {
+            privateMessageListener.start();
+            privateMessageListener.setMessageType(MessageType.DEFAULT);
+            privateMessageListener.getLatch().await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return privateMessageListener.getPayload().getContent();
+    }
+
+    @Override
+    public boolean isPLayer1() {
+        return player1;
     }
 
     private boolean interceptSyncMessage() throws InterruptedException {
