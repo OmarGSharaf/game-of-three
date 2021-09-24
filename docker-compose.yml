@@ -21,8 +21,8 @@ services:
       - ALLOW_PLAINTEXT_LISTENER=yes
     depends_on:
       - zookeeper
-#    logging:
-#      driver: none
+    logging:
+      driver: none
 
   player:
     build: .

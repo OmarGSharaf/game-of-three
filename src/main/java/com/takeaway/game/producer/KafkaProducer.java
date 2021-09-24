@@ -20,6 +20,7 @@ public class KafkaProducer {
 
     public void send(String topic, int partition, String key, Message message) {
         log.info("## Sending payload={} to topic={} on partition={}", message.toString(), topic, partition);
+        System.out.printf("## Sending payload=%s to topic=%s on partition=%s\n", message.toString(), topic, partition);
         kafkaTemplate.send(topic, partition, key, message);
     }
 }

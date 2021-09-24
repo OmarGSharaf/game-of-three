@@ -75,6 +75,8 @@ public class GameEngine {
     public void gameOver(StateContext<GameStates, GameEvents> ctx) {
         String option = ConsoleUtils.scan("\nDo you want to play again ? [Y/m]");
 
+        game.reset();
+
         ctx.getStateMachine().sendEvent(option.equalsIgnoreCase("y")
                 ? GameEvents.PLAY_AGAIN
                 : GameEvents.TERMINATE);

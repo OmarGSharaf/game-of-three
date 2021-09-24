@@ -85,16 +85,11 @@ public class ConnectionHandler {
     }
 
     private boolean interceptAckMessage() throws InterruptedException {
-        System.out.println("1");
-        privateMessageListener.setMessageType(MessageType.ACK);
-        System.out.println("2");
         privateMessageListener.resetLatch();
-        System.out.println("3");
-        privateMessageListener.getLatch().await(10000, TimeUnit.MILLISECONDS);
-        System.out.println("4");
-        System.out.println(privateMessageListener.getPayload());
-        System.out.println(privateMessageListener.getLatch().getCount());
-
+        privateMessageListener.setMessageType(MessageType.ACK);
+        System.out.println("BEFORE");
+        privateMessageListener.getLatch().await(5000, TimeUnit.MILLISECONDS);
+        System.out.println("AFTER");
         return privateMessageListener.getLatch().getCount() == 0L;
     }
 
@@ -108,7 +103,7 @@ public class ConnectionHandler {
     private boolean interceptSyncAckMessage() throws InterruptedException {
         privateMessageListener.start();
         privateMessageListener.setMessageType(MessageType.SYN_ACK);
-        privateMessageListener.getLatch().await(10000, TimeUnit.MILLISECONDS);
+        privateMessageListener.getLatch().await(5000, TimeUnit.MILLISECONDS);
 
         return privateMessageListener.getLatch().getCount() == 0L;
     }

@@ -34,7 +34,7 @@ public class PrivateMessageListener extends AbstractKafkaListener {
     @Autowired
     private KafkaManager kafkaManager;
 
-    private Enum<MessageType> messageType = MessageType.SYN;
+    private Enum<MessageType> messageType = MessageType.SYN_ACK;
 
     @KafkaListener(id = KAFKA_LISTENER_ID, autoStartup = "false", topics = "${kafka.topic}")
     public void listen(@Payload Message message,
@@ -43,13 +43,18 @@ public class PrivateMessageListener extends AbstractKafkaListener {
                        Acknowledgment acknowledgment) {
         log.info("## receiving private message='{}'", message.toString());
 
+        System.out.println("##########################");
+        System.out.println(message);
+        System.out.println(messageType);
+        System.out.println("##########################");
+
         if (ObjectUtils.nullSafeEquals(messageType, message.getType())) {
             log.info("## consuming private message='{}'", message.toString());
 
             payload = message;
             latch.countDown();
-            acknowledgment.acknowledge();
         }
+        acknowledgment.acknowledge();
     }
 
     @Override
