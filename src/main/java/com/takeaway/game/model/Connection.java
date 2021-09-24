@@ -3,6 +3,8 @@ package com.takeaway.game.model;
 import lombok.Builder;
 import lombok.Data;
 
+import java.util.Objects;
+
 @Data
 @Builder
 public class Connection {
@@ -11,14 +13,9 @@ public class Connection {
 
     private String player2;
 
-    private long timestamp;
+    private Long timestamp;
 
     public boolean isConnected() {
-        return player1.isEmpty() || player2.isEmpty();
+        return !Objects.isNull(player1) && !Objects.isNull(player2) && !Objects.isNull(timestamp);
     }
-
-    public String getId() {
-        return isConnected() ? String.format("%s-%s", player1, player2) : null;
-    }
-
 }

@@ -32,8 +32,8 @@ public class KafkaTopicConfig {
     public NewTopic topic1() {
         return TopicBuilder
                 .name(topic)
-                .partitions(1)
-                .config(TopicConfig.RETENTION_MS_CONFIG, "60000")
+                .partitions(13)
+                .config(TopicConfig.RETENTION_MS_CONFIG, "30000")
                 .build();
     }
 }

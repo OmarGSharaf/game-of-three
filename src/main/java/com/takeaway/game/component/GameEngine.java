@@ -1,7 +1,5 @@
 package com.takeaway.game.component;
 
-import com.takeaway.game.handler.ConnectionHandler;
-import com.takeaway.game.model.Connection;
 import com.takeaway.game.type.GameEvents;
 import com.takeaway.game.type.GameMode;
 import com.takeaway.game.type.GameStates;
@@ -14,11 +12,7 @@ import org.springframework.stereotype.Component;
 public class GameEngine {
 
     @Autowired
-    private ConnectionHandler connectionHandler;
-
-    private Enum<GameMode> gameMode;
-
-    private Connection connection;
+    private Game game;
 
     public void welcome(StateContext<GameStates, GameEvents> ctx) {
         ConsoleUtils.clearConsole();
@@ -50,30 +44,32 @@ public class GameEngine {
 
         String option = ConsoleUtils.scan("\nDo you want to select automatic mode ? [A/m]");
 
-        gameMode = option.equalsIgnoreCase("a") ? GameMode.AUTOMATIC : GameMode.MANUAL;
+        game.setGameMode(option.equalsIgnoreCase("a") ? GameMode.AUTOMATIC : GameMode.MANUAL);
         ctx.getStateMachine().sendEvent(GameEvents.CONNECT);
 
         ConsoleUtils.clearConsole();
     }
 
     public void findOpponent(StateContext<GameStates, GameEvents> ctx) {
-        System.out.println("\nFinding opponent! Please wait...");
+        System.out.println("\nFinding opponent! Please wait...\n");
 
-        connection = connectionHandler.handle();
+        game.init();
 
-        if(connection.isConnected()) {
-            ctx.getStateMachine().sendEvent(GameEvents.CONNECT);
+        ctx.getStateMachine().sendEvent(game.getId() == Integer.parseInt(game.getConnection().getPlayer1())
+                ? GameEvents.PLAY
+                : GameEvents.WAIT);
 
-            ConsoleUtils.clearConsole();
-        }
+        ConsoleUtils.clearConsole();
     }
 
     public void play() {
         System.out.println("Play");
+        System.out.println(game.getConnection().toString());
     }
 
     public void waitTurn() {
         System.out.println("Wait Turn");
+        System.out.println(game.getConnection().toString());
     }
 
     public void gameOver() {

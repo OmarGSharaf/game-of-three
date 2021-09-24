@@ -1,20 +1,19 @@
 package com.takeaway.game.handler;
 
-import com.takeaway.game.component.KafkaManager;
-import com.takeaway.game.consumer.KafkaConsumer;
+import com.takeaway.game.listener.PrivateMessageListener;
+import com.takeaway.game.listener.PublicMessageListener;
 import com.takeaway.game.model.Connection;
 import com.takeaway.game.model.Message;
 import com.takeaway.game.producer.KafkaProducer;
 import com.takeaway.game.type.MessageType;
-import lombok.extern.java.Log;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
-@Log
+@Log4j2
 @Component
 public class ConnectionHandler {
 
@@ -22,103 +21,103 @@ public class ConnectionHandler {
     private String topic;
 
     @Autowired
-    private KafkaManager kafkaManager;
+    private PublicMessageListener publicMessageListener;
 
     @Autowired
-    private KafkaConsumer consumer;
+    private PrivateMessageListener privateMessageListener;
 
     @Autowired
     private KafkaProducer producer;
 
-    public Connection handle() {
-        String id = generateId();
-
-        consumer.setMyKey(id);
-        consumer.setMessageType(MessageType.SYN);
-        consumer.resetLatch();
-
-        kafkaManager.start("1");
-
+    public Connection handle(String id) {
         try {
-            consumer.getLatch().await(10000, TimeUnit.MILLISECONDS);
+            if (interceptSyncMessage()) {
+                System.out.println("## intercepted [SYN] message, message = " + publicMessageListener.getPayload());
+                acknowledgeSyncMessage(id, publicMessageListener.getPayload().getSender());
+                System.out.println("## transmitted [SYN_ACK] message");
+                if (interceptAckMessage()) {
+                    System.out.println("## intercepted [ACK] message, message = " + publicMessageListener.getPayload());
+                    return Connection.builder()
+                            .player1(publicMessageListener.getPayload().getSender())
+                            .player2(id)
+                            .timestamp(System.currentTimeMillis())
+                            .build();
+                }
+            }
         } catch (InterruptedException e) {
-            log.severe(e.getMessage());
+            log.error(e.getMessage());
         }
 
-        if (consumer.getLatch().getCount() == 0L) {
-            synAck(id, consumer.getPayload().getSender());
-
-            consumer.setMessageType(MessageType.ACK);
-            consumer.resetLatch();
-
-            try {
-                consumer.getLatch().await(10000, TimeUnit.MILLISECONDS);
-            } catch (InterruptedException e) {
-                log.severe(e.getMessage());
-            }
-
-            if (consumer.getLatch().getCount() == 0L) {
-                Message message = consumer.getPayload();
+        try {
+            broadcastSyncMessage(id);
+            System.out.println("## transmitted [SYNC] message");
+            if(interceptSyncAckMessage()) {
+                System.out.println("## intercepted [SYNC_ACK] message, message = " + privateMessageListener.getPayload());
+                sendAckMessage(id, privateMessageListener.getPayload().getSender());
+                System.out.println("## transmitted [ACK] message");
                 return Connection.builder()
-                        .player1(message.getSender())
-                        .player2(id)
+                        .player1(id)
+                        .player2(privateMessageListener.getPayload().getSender())
                         .timestamp(System.currentTimeMillis())
                         .build();
             }
-        }
-
-        consumer.setMessageType(MessageType.SYN_ACK);
-        consumer.resetLatch();
-
-        syn(id);
-
-        try {
-            consumer.getLatch().await(60000, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
-            log.severe(e.getMessage());
+            log.error(e.getMessage());
         }
 
-        if (consumer.getLatch().getCount() == 0L) {
-            String sender = consumer.getPayload().getSender();
-
-            ack(id, sender);
-
-            return Connection.builder()
-                    .player1(id)
-                    .player2(sender)
-                    .timestamp(System.currentTimeMillis())
-                    .build();
-        }
-        return handle();
+        return handle(id);
     }
 
-    private void syn(String sender) {
-        log.info(String.format(" ==> sending SYN message -> sender: %s", sender));
-        producer.send(topic, sender, Message.builder()
-                .sender(sender)
-                .type(MessageType.SYN)
-                .build());
+    private boolean interceptSyncMessage() throws InterruptedException {
+        publicMessageListener.start();
+        publicMessageListener.getLatch().await(10000, TimeUnit.MILLISECONDS);
+        publicMessageListener.stop();
+
+        return publicMessageListener.getLatch().getCount() == 0L;
     }
 
-    private void synAck(String sender, String receiver) {
-        log.info(String.format("==> sending SYN_ACK message -> sender: %s -> receiver: %s", sender, receiver));
-        producer.send(topic, sender, Message.builder()
+    private void acknowledgeSyncMessage(String sender, String receiver) {
+        producer.send(topic, Integer.parseInt(receiver), sender, Message.builder()
                 .sender(sender)
                 .receiver(receiver)
                 .type(MessageType.SYN_ACK)
                 .build());
     }
 
-    private void ack(String sender, String receiver) {
-        log.info(String.format("==> sending ACK message -> sender: %s -> receiver: %s", sender, receiver));
+    private boolean interceptAckMessage() throws InterruptedException {
+        System.out.println("1");
+        privateMessageListener.setMessageType(MessageType.ACK);
+        System.out.println("2");
+        privateMessageListener.resetLatch();
+        System.out.println("3");
+        privateMessageListener.getLatch().await(10000, TimeUnit.MILLISECONDS);
+        System.out.println("4");
+        System.out.println(privateMessageListener.getPayload());
+        System.out.println(privateMessageListener.getLatch().getCount());
+
+        return privateMessageListener.getLatch().getCount() == 0L;
+    }
+
+    private void broadcastSyncMessage(String sender) throws InterruptedException {
         producer.send(topic, sender, Message.builder()
+                .sender(sender)
+                .type(MessageType.SYN)
+                .build());
+    }
+
+    private boolean interceptSyncAckMessage() throws InterruptedException {
+        privateMessageListener.start();
+        privateMessageListener.setMessageType(MessageType.SYN_ACK);
+        privateMessageListener.getLatch().await(10000, TimeUnit.MILLISECONDS);
+
+        return privateMessageListener.getLatch().getCount() == 0L;
+    }
+
+    private void sendAckMessage(String sender, String receiver) {
+        producer.send(topic, Integer.parseInt(receiver), sender, Message.builder()
                 .sender(sender)
                 .receiver(receiver)
                 .type(MessageType.ACK)
                 .build());
-    }
-
-    private String generateId() {
-        return String.format("%d-%d", new Random().nextInt(10000), System.currentTimeMillis() / 1000);
     }
 }
