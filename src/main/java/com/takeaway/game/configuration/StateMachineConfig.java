@@ -79,22 +79,22 @@ public class StateMachineConfig extends StateMachineConfigurerAdapter<GameStates
 
     @Bean
     public Action<GameStates, GameEvents> playAction() {
-        return ctx -> gameEngine.play();
+        return ctx -> gameEngine.play(ctx);
     }
 
     @Bean
     public Action<GameStates, GameEvents> waitAction() {
-        return ctx -> gameEngine.waitTurn();
+        return ctx -> gameEngine.waitTurn(ctx);
     }
 
     @Bean
     public Action<GameStates, GameEvents> overAction() {
-        return ctx -> gameEngine.gameOver();
+        return ctx -> gameEngine.gameOver(ctx);
     }
 
     @Bean
     public Action<GameStates, GameEvents> endAction() {
-        return ctx -> gameEngine.playAgain();
+        return ctx -> gameEngine.exit();
     }
 
 }

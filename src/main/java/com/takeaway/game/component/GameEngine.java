@@ -62,25 +62,28 @@ public class GameEngine {
         ConsoleUtils.clearConsole();
     }
 
-    public void play() {
+    public void play(StateContext<GameStates, GameEvents> ctx) {
         System.out.println("Play");
         System.out.println(game.getConnection().toString());
     }
 
-    public void waitTurn() {
+    public void waitTurn(StateContext<GameStates, GameEvents> ctx) {
         System.out.println("Wait Turn");
         System.out.println(game.getConnection().toString());
     }
 
-    public void gameOver() {
-        System.out.println("Game Over");
-    }
+    public void gameOver(StateContext<GameStates, GameEvents> ctx) {
+        String option = ConsoleUtils.scan("\nDo you want to play again ? [Y/m]");
 
-    public void playAgain() {
-        System.out.println("Play Again");
+        ctx.getStateMachine().sendEvent(option.equalsIgnoreCase("y")
+                ? GameEvents.PLAY_AGAIN
+                : GameEvents.TERMINATE);
+
+        ConsoleUtils.clearConsole();
     }
 
     public void exit() {
-        System.out.println("Exit");
+        System.out.println("Bye bye!!!");
+        game.close();
     }
 }
