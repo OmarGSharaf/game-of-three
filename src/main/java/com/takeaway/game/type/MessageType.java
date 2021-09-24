@@ -3,5 +3,5 @@ package com.takeaway.game.type;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public enum MessageType {
-    @JsonProperty("syn") SYN, @JsonProperty("synAck") SYN_ACK, @JsonProperty("ack") ACK
+    @JsonProperty SYN, @JsonProperty SYN_ACK, @JsonProperty ACK, @JsonProperty IN_GAME
 }

@@ -1,6 +1,6 @@
 package com.takeaway.game.listener;
 
-import com.takeaway.game.component.Game;
+import com.takeaway.game.component.Player;
 import com.takeaway.game.component.KafkaManager;
 import com.takeaway.game.model.Message;
 import com.takeaway.game.type.MessageType;
@@ -26,7 +26,7 @@ public class PublicMessageListener extends AbstractKafkaListener {
     private static final String KAFKA_LISTENER_ID = "public-listener";
 
     @Autowired
-    private Game game;
+    private Player player;
 
     @Autowired
     private KafkaManager kafkaManager;
@@ -39,7 +39,7 @@ public class PublicMessageListener extends AbstractKafkaListener {
                        Acknowledgment acknowledgment) {
         log.info("## receiving public message='{}'", message.toString());
 
-        if (ObjectUtils.nullSafeEquals(MessageType.SYN, message.getType()) && !ObjectUtils.nullSafeEquals(key, game.getId())) {
+        if (ObjectUtils.nullSafeEquals(MessageType.SYN, message.getType()) && !ObjectUtils.nullSafeEquals(key, player.getId())) {
             log.info("## consuming private message='{}'", message.toString());
 
             payload = message;

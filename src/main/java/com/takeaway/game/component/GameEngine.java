@@ -5,6 +5,8 @@ import com.takeaway.game.type.GameMode;
 import com.takeaway.game.type.GameStates;
 import com.takeaway.game.util.ConsoleUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.SpringApplication;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.statemachine.StateContext;
 import org.springframework.stereotype.Component;
 
@@ -12,7 +14,10 @@ import org.springframework.stereotype.Component;
 public class GameEngine {
 
     @Autowired
-    private Game game;
+    private Player player;
+
+    @Autowired
+    private ConfigurableApplicationContext applicationContext;
 
     public void welcome(StateContext<GameStates, GameEvents> ctx) {
         ConsoleUtils.clearConsole();
@@ -44,7 +49,7 @@ public class GameEngine {
 
         String option = ConsoleUtils.scan("\nDo you want to select automatic mode ? [A/m]");
 
-        game.setGameMode(option.equalsIgnoreCase("a") ? GameMode.AUTOMATIC : GameMode.MANUAL);
+        player.setGameMode(option.equalsIgnoreCase("a") ? GameMode.AUTOMATIC : GameMode.MANUAL);
         ctx.getStateMachine().sendEvent(GameEvents.CONNECT);
 
         ConsoleUtils.clearConsole();
@@ -53,29 +58,42 @@ public class GameEngine {
     public void findOpponent(StateContext<GameStates, GameEvents> ctx) {
         System.out.println("\nFinding opponent! Please wait...\n");
 
-        game.init();
+        player.init();
 
-        ctx.getStateMachine().sendEvent(game.getId() == Integer.parseInt(game.getConnection().getPlayer1())
-                ? GameEvents.PLAY
-                : GameEvents.WAIT);
+        if (player.getId() == Integer.parseInt(player.getConnection().getPlayer1())) {
+            ConsoleUtils.clearConsole();
+
+            player.start();
+            ctx.getStateMachine().sendEvent(GameEvents.PLAY);
+        } else {
+            ctx.getStateMachine().sendEvent(GameEvents.WAIT);
+        }
 
         ConsoleUtils.clearConsole();
     }
 
     public void play(StateContext<GameStates, GameEvents> ctx) {
-        System.out.println("Play");
-        System.out.println(game.getConnection().toString());
+        player.play();
+        System.out.println(player.getValue());
+
+        ctx.getStateMachine().sendEvent(player.getValue() == 1
+                ? GameEvents.ANNOUNCE_WINNER
+                : GameEvents.WAIT);
     }
 
     public void waitTurn(StateContext<GameStates, GameEvents> ctx) {
-        System.out.println("Wait Turn");
-        System.out.println(game.getConnection().toString());
+        player.waitOpponent();
+
+        ctx.getStateMachine().sendEvent(player.getValue() == 1
+                ? GameEvents.ANNOUNCE_WINNER
+                : GameEvents.PLAY);
     }
 
     public void gameOver(StateContext<GameStates, GameEvents> ctx) {
+        System.out.println();
         String option = ConsoleUtils.scan("\nDo you want to play again ? [Y/m]");
 
-        game.reset();
+        player.reset();
 
         ctx.getStateMachine().sendEvent(option.equalsIgnoreCase("y")
                 ? GameEvents.PLAY_AGAIN
@@ -86,6 +104,7 @@ public class GameEngine {
 
     public void exit() {
         System.out.println("Bye bye!!!");
-        game.close();
+        SpringApplication.exit(applicationContext, () -> 0);
+        System.exit(0);
     }
 }

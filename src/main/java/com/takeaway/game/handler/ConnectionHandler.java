@@ -32,11 +32,11 @@ public class ConnectionHandler {
     public Connection handle(String id) {
         try {
             if (interceptSyncMessage()) {
-                System.out.println("## intercepted [SYN] message, message = " + publicMessageListener.getPayload());
+                System.out.println("==> [SYN] message = " + publicMessageListener.getPayload());
                 acknowledgeSyncMessage(id, publicMessageListener.getPayload().getSender());
-                System.out.println("## transmitted [SYN_ACK] message");
+                System.out.println("<== [SYN_ACK] message");
                 if (interceptAckMessage()) {
-                    System.out.println("## intercepted [ACK] message, message = " + publicMessageListener.getPayload());
+                    System.out.println("==> [ACK] message = " + publicMessageListener.getPayload());
                     return Connection.builder()
                             .player1(publicMessageListener.getPayload().getSender())
                             .player2(id)
@@ -50,11 +50,11 @@ public class ConnectionHandler {
 
         try {
             broadcastSyncMessage(id);
-            System.out.println("## transmitted [SYNC] message");
+            System.out.println("<== [SYNC] message");
             if(interceptSyncAckMessage()) {
-                System.out.println("## intercepted [SYNC_ACK] message, message = " + privateMessageListener.getPayload());
+                System.out.println("==> [SYNC_ACK] message = " + privateMessageListener.getPayload());
                 sendAckMessage(id, privateMessageListener.getPayload().getSender());
-                System.out.println("## transmitted [ACK] message");
+                System.out.println("<== [ACK] message");
                 return Connection.builder()
                         .player1(id)
                         .player2(privateMessageListener.getPayload().getSender())
@@ -64,6 +64,9 @@ public class ConnectionHandler {
         } catch (InterruptedException e) {
             log.error(e.getMessage());
         }
+
+        System.out.println("\n## Synchronization failed!");
+        System.out.println("## Retry...\n");
 
         return handle(id);
     }
@@ -87,9 +90,8 @@ public class ConnectionHandler {
     private boolean interceptAckMessage() throws InterruptedException {
         privateMessageListener.resetLatch();
         privateMessageListener.setMessageType(MessageType.ACK);
-        System.out.println("BEFORE");
         privateMessageListener.getLatch().await(5000, TimeUnit.MILLISECONDS);
-        System.out.println("AFTER");
+
         return privateMessageListener.getLatch().getCount() == 0L;
     }
 

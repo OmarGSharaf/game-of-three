@@ -1,6 +1,6 @@
 package com.takeaway.game.listener;
 
-import com.takeaway.game.component.Game;
+import com.takeaway.game.component.Player;
 import com.takeaway.game.component.KafkaManager;
 import com.takeaway.game.model.Message;
 import com.takeaway.game.type.MessageType;
@@ -29,7 +29,7 @@ public class PrivateMessageListener extends AbstractKafkaListener {
     private String topic;
 
     @Autowired
-    private Game game;
+    private Player player;
 
     @Autowired
     private KafkaManager kafkaManager;
@@ -41,12 +41,7 @@ public class PrivateMessageListener extends AbstractKafkaListener {
                        @Header(KafkaHeaders.RECEIVED_MESSAGE_KEY) String key,
                        @Header(KafkaHeaders.RECEIVED_PARTITION_ID) int partition,
                        Acknowledgment acknowledgment) {
-        log.info("## receiving private message='{}'", message.toString());
-
-        System.out.println("##########################");
-        System.out.println(message);
-        System.out.println(messageType);
-        System.out.println("##########################");
+        log.info("## receiving private message='{}' on partition={}", message.toString(), partition);
 
         if (ObjectUtils.nullSafeEquals(messageType, message.getType())) {
             log.info("## consuming private message='{}'", message.toString());
@@ -60,7 +55,7 @@ public class PrivateMessageListener extends AbstractKafkaListener {
     @Override
     public void start() {
         resetLatch();
-        kafkaManager.setTopicPartition(KAFKA_LISTENER_ID, topic, game.getId());
+        kafkaManager.setTopicPartition(KAFKA_LISTENER_ID, topic, player.getId());
         kafkaManager.start(KAFKA_LISTENER_ID);
     }
 

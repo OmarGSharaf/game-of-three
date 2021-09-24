@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class Message {
 
-    private String content;
+    private Integer content;
 
     private String sender;
 
